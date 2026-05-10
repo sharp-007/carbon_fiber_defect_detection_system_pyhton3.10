@@ -1023,7 +1023,17 @@ results3 = model3("image.jpg")
    - 如果模型文件过大，可以考虑使用 Git LFS 或外部存储
    - Streamlit Cloud 提供免费的 CPU 资源，GPU 推理可能较慢
    - 首次部署可能需要几分钟时间来安装依赖
-   - **重要**：如果遇到 `ImportError: libGL.so.1` 错误，确保 `packages.txt` 文件存在并包含 `libgl1-mesa-glx` 和 `libglib2.0-0`
+   - **重要**：如果遇到 `ImportError: libGL.so.1` 错误，确保 `packages.txt` 文件存在并包含 `libgl1` 和 `libglib2.0-0t64`（Ubuntu 24.04 镜像后缀已变）
+
+4. **Streamlit Cloud 已知坑点（2025/2026 升级后必看）**：
+
+   | 现象 | 根因 | 修复 |
+   |---|---|---|
+   | 摄像头模式报「缺少 streamlit-webrtc 组件」/「streamlit-webrtc 组件加载失败」 | Streamlit 1.50+ 内部 web 服务器从 tornado 切到 ASGI，不再随 streamlit 自带 tornado；而 `streamlit-webrtc` 内部仍然 `import tornado` 但**没把它列入依赖** | 在 `requirements.txt` 显式加 `tornado>=6.0.0` |
+   | runtime.txt 不生效，应用跑在 Python 3.13 | Streamlit Cloud 已忽略 `runtime.txt` | 在 **Manage app → Settings → Python version** 选 3.12 |
+   | `Failed building wheel for av` | `av<14` 在 Python 3.13 上没有预编译 wheel | 升级 `av>=14.0.0` |
+   | `pip's dependency resolver` 警告 / 老 numpy 死锁 | 老版 ultralytics/torch 与 `numpy<2` 上限冲突 | 去掉 numpy 上限：`numpy>=1.23.0` |
+   | 任何「组件加载失败」类错误 | UI 上看不到真实异常 | 在 import try/except 里**展示 traceback 到页面**，比反复猜快 10 倍（本项目已内置） |
 
 ### 8. 技术特点
 

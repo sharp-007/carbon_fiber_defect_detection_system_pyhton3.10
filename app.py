@@ -2667,14 +2667,13 @@ def main():
             
             安装完成后，请重启 Streamlit 应用。
             """)
-            # 把真实的 import 错误堆栈展示出来，便于在 Streamlit Cloud 上精确诊断
-            # （之前只能看到“缺少组件”这种笼统提示，无法定位是哪一个传递依赖出问题）
+            # 保留真实的 import 错误堆栈（默认收起），便于未来部署再出问题时一键定位
             if WEBRTC_IMPORT_ERROR:
-                with st.expander("🔍 查看真实的导入错误（用于排查 Streamlit Cloud 部署问题）", expanded=True):
+                with st.expander("🔍 查看真实的导入错误（用于排查 Streamlit Cloud 部署问题）", expanded=False):
                     st.code(WEBRTC_IMPORT_ERROR, language="text")
                     st.caption(
                         "常见根因：1) av/aiortc 在 Python 3.13 上无 wheel；"
-                        "2) packages.txt 缺 libsrtp2-dev 导致 pylibsrtp 编译失败；"
+                        "2) streamlit-webrtc 隐性依赖 tornado 未声明（Streamlit 1.50+ 不再自带 tornado）；"
                         "3) numpy 版本被锁死与 torch/ultralytics 冲突；"
                         "4) Streamlit Cloud 后台 Python 版本未切到 3.12。"
                     )
