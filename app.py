@@ -136,11 +136,14 @@ try:
     from streamlit_webrtc import webrtc_streamer, WebRtcMode
     import av
     WEBRTC_AVAILABLE = True
-except ImportError:
+    WEBRTC_IMPORT_ERROR = None
+except Exception as _webrtc_err:  # 捕获所有异常（不只 ImportError），把真实原因留下来
     WEBRTC_AVAILABLE = False
     webrtc_streamer = None  # type: ignore
     WebRtcMode = None  # type: ignore
     av = None  # type: ignore
+    import traceback as _tb
+    WEBRTC_IMPORT_ERROR = f"{type(_webrtc_err).__name__}: {_webrtc_err}\n\n{_tb.format_exc()}"
 
 # 全局锁和数据容器（用于线程间共享数据）
 # 参考: https://github.com/whitphx/streamlit-webrtc#pull-values-from-the-callback
@@ -2655,15 +2658,26 @@ def main():
         
         if not WEBRTC_AVAILABLE:
             st.error("""
-            ❌ **缺少 streamlit-webrtc 组件**
+            ❌ **streamlit-webrtc 组件加载失败**
             
-            请安装 streamlit-webrtc 以启用摄像头实时检测功能：
+            请安装或升级 streamlit-webrtc 以启用摄像头实时检测功能：
             ```bash
-            pip install streamlit-webrtc av
+            pip install -U "streamlit-webrtc>=0.64.0" "av>=14.0.0"
             ```
             
             安装完成后，请重启 Streamlit 应用。
             """)
+            # 把真实的 import 错误堆栈展示出来，便于在 Streamlit Cloud 上精确诊断
+            # （之前只能看到“缺少组件”这种笼统提示，无法定位是哪一个传递依赖出问题）
+            if WEBRTC_IMPORT_ERROR:
+                with st.expander("🔍 查看真实的导入错误（用于排查 Streamlit Cloud 部署问题）", expanded=True):
+                    st.code(WEBRTC_IMPORT_ERROR, language="text")
+                    st.caption(
+                        "常见根因：1) av/aiortc 在 Python 3.13 上无 wheel；"
+                        "2) packages.txt 缺 libsrtp2-dev 导致 pylibsrtp 编译失败；"
+                        "3) numpy 版本被锁死与 torch/ultralytics 冲突；"
+                        "4) Streamlit Cloud 后台 Python 版本未切到 3.12。"
+                    )
         else:
             st.info("💡 请确保摄像头已连接并授权访问权限。点击下方视频组件上的 START 按钮开始实时检测。")
         
